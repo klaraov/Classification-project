@@ -1,7 +1,6 @@
 clear all
 close all
 
-%% Task 1.1a)
 % Choose the first 30 samples for training and the last 20 samples for testing.
 learningRates = [0.1, 0.05, 0.01];
 numRates = numel(learningRates);
@@ -27,16 +26,15 @@ totalTest = numTestPerClass * numClasses;
 trainData = [setClass1(1:numTrainPerClass,:).', setClass2(1:numTrainPerClass,:).', setClass3(1:numTrainPerClass,:).'];
 testData  = [setClass1(numTrainPerClass+1:end,:).', setClass2(numTrainPerClass+1:end,:).', setClass3(numTrainPerClass+1:end,:).'];
 
-% Define one-hot targets
+% Define onehot targets
 label1 = [1;0;0]; label2 = [0;1;0]; label3 = [0;0;1];
 targetLabels = [repmat(label1,1,numTrainPerClass), repmat(label2,1,numTrainPerClass), repmat(label3,1,numTrainPerClass)];
 
-% Helper functions
 activationFn = @(z) 1./(1+exp(-z));
 lossFn = @(output,target) 0.5*(output-target)'*(output-target);
 gradLossFn = @(output,target,input) ((output-target).*output.*(1-output))*input.';
 
-%% --- Training using multiple learning rates ---
+%% Training using multiple learning rates
 for idxRate = 1:numRates
     rate = learningRates(idxRate);
 
@@ -67,7 +65,7 @@ for idxRate = 1:numRates
     end
 end
 
-%% --- Plot loss curves ---
+%% Plot loss curves
 figure;
 hold on;
 epochList = 1:maxIters;
@@ -82,7 +80,7 @@ grid on;
 set(gca, 'FontSize', 18);
 hold off;
 
-%% Task 1.1c) - Confusion matrix and error rates
+%% Confusion matrix and error rates
 trainConfMat = zeros(numClasses);
 for idxSample = 1:totalTrain
     inputVec = [trainData(:,idxSample);1];
