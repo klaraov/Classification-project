@@ -1,7 +1,7 @@
 clear all
 close all
 
-%% Task 1.2a) Iris classification with alpha=0.01, drop features with greatest overlap between classes
+%%Iris classification with alpha=0.01, drop features with biggest overlap between classes
 
 setClass1 = load('class_1');
 setClass2 = load('class_2');
@@ -21,7 +21,7 @@ numTestPerClass  = 20;
 trainData = [setClass1(1:numTrainPerClass,:).', setClass2(1:numTrainPerClass,:).', setClass3(1:numTrainPerClass,:).'];
 testData  = [setClass1(numTrainPerClass+1:end,:).', setClass2(numTrainPerClass+1:end,:).', setClass3(numTrainPerClass+1:end,:).'];
 
-% One-hot encoded labels
+% One hot encoded labels
 label1 = [1;0;0]; label2 = [0;1;0]; label3 = [0;0;1];
 targetLabels = [repmat(label1,1,numTrainPerClass), repmat(label2,1,numTrainPerClass), repmat(label3,1,numTrainPerClass)];
 
@@ -34,7 +34,7 @@ weights = zeros(numClasses, numFeatures);
 bias = zeros(numClasses, 1);
 lossCurve = zeros(1, maxIters);
 
-% Helper functions
+% helper functions
 activationFn = @(z) 1./(1+exp(-z));
 lossFn = @(output,target) 0.5*(output-target)'*(output-target);
 gradLossFn = @(output,target,input) ((output-target).*output.*(1-output)) * input.';
