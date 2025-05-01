@@ -1,6 +1,6 @@
 clear; clc; close all;
 
-% Load data
+%Load data
 load('data_all.mat');
 load('nn_predictions.mat');
 
@@ -14,7 +14,7 @@ sample_correct = [1235, 7, 9919, 9470];
 
 image_matrix = zeros(28,28);
 
-% Display wrongly classified
+% Display wrongly classified images
 figure(1)
 sgtitle("Wrongly Classified Pictures", 'FontSize', 20)
 
@@ -32,7 +32,7 @@ for i = 1:numel(sample_incorrect)
         'FontSize', 15, 'FontWeight', 'bold');
 end
 
-% Display correctly classified
+% Display correctly classified images
 figure(2)
 sgtitle("Correctly Classified Pictures", 'FontSize', 20)
 
