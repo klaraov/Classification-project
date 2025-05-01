@@ -1,4 +1,5 @@
-clear; clc; close all;
+clear; clc; 
+close all;
 
 load('data_all.mat');
 load('clusters.mat');
