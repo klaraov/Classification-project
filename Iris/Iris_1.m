@@ -3,115 +3,108 @@ close all
 
 %% Task 1.1a)
 % Choose the first 30 samples for training and the last 20 samples for testing.
-% alphas    = [0.1, 0.05, 0.01 ,0.005,0.001];
-alphas    = [0.1, 0.05, 0.01];
-numAlphas = numel(alphas);
-NumIterations = 3000;     
-MSEs_all  = zeros(numAlphas, NumIterations);
+learningRates = [0.1, 0.05, 0.01];
+numRates = numel(learningRates);
+maxIters = 3000;
+lossHistory = zeros(numRates, maxIters);
 
-% Defining initial variables
-C = 3;                          % Number of classes
-D = 4;                          % Number of features per sample
-% Load data
-dataClass1 = load('class_1');
-dataClass2 = load('class_2');
-dataClass3 = load('class_3');
+% Initial settings
+numClasses = 3;
+numFeatures = 4;
 
-% Training and test indices
-NumTrainC = 30;  NumTrain  = NumTrainC * C;
-NumTestC  = 20;  NumTest   = NumTestC  * C;
+% Load datasets
+setClass1 = load('class_1');
+setClass2 = load('class_2');
+setClass3 = load('class_3');
 
-% Prepare train and test sets
-%first 30 for training
-trainSet = [dataClass1(1:NumTrainC,:).', dataClass2(1:NumTrainC,:).', dataClass3(1:NumTrainC,:).'];
-testSet  = [dataClass1(NumTrainC+1:end,:).', dataClass2(NumTrainC+1:end,:).', dataClass3(NumTrainC+1:end,:).'];
+% Training and testing data size
+numTrainPerClass = 30;  
+totalTrain = numTrainPerClass * numClasses;
+numTestPerClass = 20;   
+totalTest = numTestPerClass * numClasses;
 
+% Compose train/test sets
+trainData = [setClass1(1:numTrainPerClass,:).', setClass2(1:numTrainPerClass,:).', setClass3(1:numTrainPerClass,:).'];
+testData  = [setClass1(numTrainPerClass+1:end,:).', setClass2(numTrainPerClass+1:end,:).', setClass3(numTrainPerClass+1:end,:).'];
 
-%Last 30 for training.
-%trainSet = [dataClass1(NumTestC+1:end,:).', dataClass2(NumTestC+1:end,:).', dataClass3(NumTestC+1:end,:).'];
-%testSet  = [dataClass1(1:NumTestC,:).', dataClass2(1:NumTestC,:).', dataClass3(1:NumTestC,:).'];
-
-% Targets: one-hot for each class in training set
-t1 = [1;0;0]; t2 = [0;1;0]; t3 = [0;0;1];
-targets = [repmat(t1,1,NumTrainC), repmat(t2,1,NumTrainC), repmat(t3,1,NumTrainC)];
+% Define one-hot targets
+label1 = [1;0;0]; label2 = [0;1;0]; label3 = [0;0;1];
+targetLabels = [repmat(label1,1,numTrainPerClass), repmat(label2,1,numTrainPerClass), repmat(label3,1,numTrainPerClass)];
 
 % Helper functions
-sigmoid    = @(z) 1./(1+exp(-z));
-MSE_fn     = @(g,t) 0.5*(g-t)'*(g-t);
-gradMSE_fn = @(g,t,x) ((g-t).*g.*(1-g))*x.';
+activationFn = @(z) 1./(1+exp(-z));
+lossFn = @(output,target) 0.5*(output-target)'*(output-target);
+gradLossFn = @(output,target,input) ((output-target).*output.*(1-output))*input.';
 
-%% --- Training over multiple alphas ---
-for iAlpha = 1:numAlphas
-    alpha = alphas(iAlpha);
+%% --- Training using multiple learning rates ---
+for idxRate = 1:numRates
+    rate = learningRates(idxRate);
 
-    % Initialize weights (including bias)
-    W  = zeros(C, D);
-    b  = zeros(C,1);
+    % Initialize weights and biases
+    weights = zeros(numClasses, numFeatures);
+    bias = zeros(numClasses,1);
 
-    % Gradient-descent for NumIterations
-    for m = 1:NumIterations
-        Gtot = zeros(C, D+1);   % gradient accumulator (last col = bias)
-        MSE  = 0;
-        
-        for k = 1:size(trainSet,2)
-            xk = [trainSet(:,k); 1];     % append 1 for bias
-            tk = targets(:,k);
-            zk = W*trainSet(:,k) + b;
-            gk = sigmoid(zk);
+    for iter = 1:maxIters
+        gradAccum = zeros(numClasses, numFeatures+1);
+        totalLoss = 0;
 
-            Gk = gradMSE_fn(gk, tk, xk);  % size C x (D+1)
-            Gtot = Gtot + Gk;
-            MSE  = MSE + MSE_fn(gk, tk);
+        for idxSample = 1:size(trainData,2)
+            inputVec = [trainData(:,idxSample); 1];
+            trueLabel = targetLabels(:,idxSample);
+            zOut = weights*trainData(:,idxSample) + bias;
+            prediction = activationFn(zOut);
+
+            gradStep = gradLossFn(prediction, trueLabel, inputVec);
+            gradAccum = gradAccum + gradStep;
+            totalLoss = totalLoss + lossFn(prediction, trueLabel);
         end
 
-        % Update weights and bias
-        W = W - alpha * Gtot(:,1:D);
-        b = b - alpha * Gtot(:,D+1);
+        % Update model
+        weights = weights - rate * gradAccum(:,1:numFeatures);
+        bias = bias - rate * gradAccum(:,numFeatures+1);
 
-        % Store MSE
-        MSEs_all(iAlpha, m) = MSE;
+        lossHistory(idxRate, iter) = totalLoss;
     end
 end
 
-%% --- Plot MSE curves for all alphas ---
+%% --- Plot loss curves ---
 figure;
 hold on;
-iters = 1:NumIterations;
-for iAlpha = 1:numAlphas
-    plot(iters, MSEs_all(iAlpha,:), 'LineWidth',1.5);
+epochList = 1:maxIters;
+for idxRate = 1:numRates
+    plot(epochList, lossHistory(idxRate,:), 'LineWidth',1.5);
 end
 xlabel('Iteration');
 ylabel('Total Training MSE');
 title('MSE for different \alpha');
-legend(arrayfun(@(a) sprintf('\\alpha=%.3f',a), alphas,'UniformOutput',false),'Location','northeast');
+legend(arrayfun(@(a) sprintf('\\alpha=%.3f',a), learningRates,'UniformOutput',false),'Location','northeast');
 grid on;
 set(gca, 'FontSize', 18);
 hold off;
 
-%% Task 1.1c) - Confusion and error rates (using final W,b of last alpha)
-% (You can choose to rerun for a specific alpha or store Ws/bs per alpha.)
-confusionTrain = zeros(C);
-for k = 1:NumTrain
-    xk = [trainSet(:,k);1];
-    trueClass = floor((k-1)/NumTrainC)+1;
-    zk = W*xk(1:end-1) + b;
-    [~,predClass] = max(sigmoid(zk));
-    confusionTrain(trueClass, predClass) = confusionTrain(trueClass, predClass) + 1;
+%% Task 1.1c) - Confusion matrix and error rates
+trainConfMat = zeros(numClasses);
+for idxSample = 1:totalTrain
+    inputVec = [trainData(:,idxSample);1];
+    trueClass = floor((idxSample-1)/numTrainPerClass)+1;
+    output = weights*inputVec(1:end-1) + bias;
+    [~,predictedClass] = max(activationFn(output));
+    trainConfMat(trueClass, predictedClass) = trainConfMat(trueClass, predictedClass) + 1;
 end
-errorRateTrain = 1 - trace(confusionTrain)/NumTrain;
+trainError = 1 - trace(trainConfMat)/totalTrain;
 
-disp('Error rate - Training:'); disp(errorRateTrain);
-disp('Confusion matrix - Training:'); disp(confusionTrain);
+disp('Error rate - Training:'); disp(trainError);
+disp('Confusion matrix - Training:'); disp(trainConfMat);
 
-confusionTest = zeros(C);
-for k = 1:NumTest
-    xk = [testSet(:,k);1];
-    trueClass = floor((k-1)/NumTestC)+1;
-    zk = W*xk(1:end-1) + b;
-    [~,predClass] = max(sigmoid(zk));
-    confusionTest(trueClass, predClass) = confusionTest(trueClass, predClass) + 1;
+testConfMat = zeros(numClasses);
+for idxSample = 1:totalTest
+    inputVec = [testData(:,idxSample);1];
+    trueClass = floor((idxSample-1)/numTestPerClass)+1;
+    output = weights*inputVec(1:end-1) + bias;
+    [~,predictedClass] = max(activationFn(output));
+    testConfMat(trueClass, predictedClass) = testConfMat(trueClass, predictedClass) + 1;
 end
-errorRateTest = 1 - trace(confusionTest)/NumTest;
+testError = 1 - trace(testConfMat)/totalTest;
 
-disp('Error rate - Testing:'); disp(errorRateTest);
-disp('Confusion matrix - Testing:'); disp(confusionTest);
+disp('Error rate - Testing:'); disp(testError);
+disp('Confusion matrix - Testing:'); disp(testConfMat);
