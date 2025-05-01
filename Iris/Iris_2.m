@@ -109,7 +109,7 @@ cm_test = confusionchart(confTest, ...
     'RowSummary','row-normalized', ...
     'ColumnSummary','column-normalized');
 cm_test.Title = 'Confusion Matrix - Test Set';
-cm_test.FontSize = 14_
+cm_test.FontSize = 14
 
 
 
