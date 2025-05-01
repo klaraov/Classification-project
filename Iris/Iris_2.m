@@ -3,99 +3,97 @@ close all
 
 %% Task 1.2a) Iris classification with alpha=0.01, drop features with greatest overlap between classes
 
-dataClass1 = load('class_1');
-dataClass2 = load('class_2');
-dataClass3 = load('class_3');
+setClass1 = load('class_1');
+setClass2 = load('class_2');
+setClass3 = load('class_3');
 disp('Taken away: Sepal Width, Sepal Length and Petal Length')
 
-dataClass1(:,[1,2,3]) = [];
-dataClass2(:,[1,2,3]) = [];
-dataClass3(:,[1,2,3]) = [];
+setClass1(:,[1,2,3]) = [];
+setClass2(:,[1,2,3]) = [];
+setClass3(:,[1,2,3]) = [];
 
-C = 3;                     % number of classes
-D = 1;                     % remaining number of features
-NumTrainC = 30;            % per-class train samples
-NumTestC  = 20;            % per-class test samples
+numClasses = 3;
+numFeatures = 1;
+numTrainPerClass = 30;
+numTestPerClass  = 20;
 
-% Prepare train and test sets (each column = one sample)
-trainSet = [dataClass1(1:NumTrainC,:).', dataClass2(1:NumTrainC,:).', dataClass3(1:NumTrainC,:).'];
-testSet  = [dataClass1(NumTrainC+1:end,:).', dataClass2(NumTrainC+1:end,:).', dataClass3(NumTrainC+1:end,:).'];
+% Prepare training and testing datasets
+trainData = [setClass1(1:numTrainPerClass,:).', setClass2(1:numTrainPerClass,:).', setClass3(1:numTrainPerClass,:).'];
+testData  = [setClass1(numTrainPerClass+1:end,:).', setClass2(numTrainPerClass+1:end,:).', setClass3(numTrainPerClass+1:end,:).'];
 
-% One-hot target vectors
-t1 = [1;0;0]; t2 = [0;1;0]; t3 = [0;0;1];
-targets = [repmat(t1,1,NumTrainC), repmat(t2,1,NumTrainC), repmat(t3,1,NumTrainC)];
+% One-hot encoded labels
+label1 = [1;0;0]; label2 = [0;1;0]; label3 = [0;0;1];
+targetLabels = [repmat(label1,1,numTrainPerClass), repmat(label2,1,numTrainPerClass), repmat(label3,1,numTrainPerClass)];
 
-% Hyperparameters
-goodAlpha    = 0.01;       % fixed step size
-epochs       = 3000;
+% Training configuration
+learningRate = 0.01;
+maxIters = 3000;
 
-% Initialization
-W = zeros(C, D);
-b = zeros(C, 1);
-MSEs = zeros(1, epochs);
+% Weight and bias initialization
+weights = zeros(numClasses, numFeatures);
+bias = zeros(numClasses, 1);
+lossCurve = zeros(1, maxIters);
 
-% Helpers
-sigmoid    = @(z) 1./(1+exp(-z));
-MSE_fn     = @(g,t) 0.5*(g-t)'*(g-t);
-gradMSE_fn = @(g,t,x) ((g-t).*g.*(1-g)) * x.';
+% Helper functions
+activationFn = @(z) 1./(1+exp(-z));
+lossFn = @(output,target) 0.5*(output-target)'*(output-target);
+gradLossFn = @(output,target,input) ((output-target).*output.*(1-output)) * input.';
 
-% Gradient descent training
-totSamples = size(trainSet,2);
-for m = 1:epochs
-    Gtot = zeros(C, D+1);
-    mseAcc = 0;
-    for k = 1:totSamples
-        xk = [trainSet(:,k); 1];
-        tk = targets(:,k);
-        zk = W*trainSet(:,k) + b;
-        gk = sigmoid(zk);
-        Gk = gradMSE_fn(gk, tk, xk);
-        Gtot = Gtot + Gk;
-        mseAcc = mseAcc + MSE_fn(gk, tk);
+% Training loop
+numTrainSamples = size(trainData,2);
+for iter = 1:maxIters
+    gradAccum = zeros(numClasses, numFeatures+1);
+    lossSum = 0;
+    for idxSample = 1:numTrainSamples
+        inputVec = [trainData(:,idxSample); 1];
+        trueLabel = targetLabels(:,idxSample);
+        zOut = weights*trainData(:,idxSample) + bias;
+        prediction = activationFn(zOut);
+        gradStep = gradLossFn(prediction, trueLabel, inputVec);
+        gradAccum = gradAccum + gradStep;
+        lossSum = lossSum + lossFn(prediction, trueLabel);
     end
-    % Update
-    W = W - goodAlpha * Gtot(:,1:D);
-    b = b - goodAlpha * Gtot(:,D+1);
-    MSEs(m) = mseAcc;
+    % Update weights and biases
+    weights = weights - learningRate * gradAccum(:,1:numFeatures);
+    bias = bias - learningRate * gradAccum(:,numFeatures+1);
+    lossCurve(iter) = lossSum;
 end
 
-% Plot MSE curve
+% Plot loss curve
 figure;
-plot(1:epochs, MSEs, 'LineWidth',1.5);
+plot(1:maxIters, lossCurve, 'LineWidth',1.5);
 xlabel('Iteration'); ylabel('Total Training MSE');
 title('\alpha = 0.01, dropped features 1,2,3');
 grid on;
 
-% Compute confusion matrices and error rates
-% Training
-confTrain = zeros(C);
-for k = 1:totSamples
-    zk = W*trainSet(:,k) + b;
-    [~, pred] = max(sigmoid(zk));
-    trueC = ceil(k/NumTrainC);
-    confTrain(trueC, pred) = confTrain(trueC, pred) + 1;
+% Confusion matrix and error rate: Training set
+confTrain = zeros(numClasses);
+for idxSample = 1:numTrainSamples
+    zOut = weights*trainData(:,idxSample) + bias;
+    [~, predictedClass] = max(activationFn(zOut));
+    trueClass = ceil(idxSample/numTrainPerClass);
+    confTrain(trueClass, predictedClass) = confTrain(trueClass, predictedClass) + 1;
 end
-errTrain = 1 - trace(confTrain)/(totSamples);
+errTrain = 1 - trace(confTrain)/(numTrainSamples);
 
 disp('Confusion matrix (train):'); disp(confTrain);
 disp(['Error rate (train): ', num2str(errTrain)]);
 
-% Testing
-totTest = size(testSet,2);
-confTest = zeros(C);
-for k = 1:totTest
-    zk = W*testSet(:,k) + b;
-    [~, pred] = max(sigmoid(zk));
-    trueC = ceil(k/NumTestC);
-    confTest(trueC, pred) = confTest(trueC, pred) + 1;
+% Confusion matrix and error rate: Test set
+numTestSamples = size(testData,2);
+confTest = zeros(numClasses);
+for idxSample = 1:numTestSamples
+    zOut = weights*testData(:,idxSample) + bias;
+    [~, predictedClass] = max(activationFn(zOut));
+    trueClass = ceil(idxSample/numTestPerClass);
+    confTest(trueClass, predictedClass) = confTest(trueClass, predictedClass) + 1;
 end
-errTest = 1 - trace(confTest)/(totTest);
+errTest = 1 - trace(confTest)/(numTestSamples);
 
 disp('Confusion matrix (test):'); disp(confTest);
 disp(['Error rate (test): ', num2str(errTest)]);
 
-
-% Create confusion chart for training set
+% Training confusion chart
 figure;
 cm_train = confusionchart(confTrain, ...
     'RowSummary','row-normalized', ...
@@ -105,15 +103,13 @@ cm_train.FontSize = 14;
 cm_train.XLabel = 'Predicted Class';
 cm_train.YLabel = 'True Class';
 
-% Create confusion chart for test set
+% Test confusion chart
 figure;
 cm_test = confusionchart(confTest, ...
     'RowSummary','row-normalized', ...
     'ColumnSummary','column-normalized');
 cm_test.Title = 'Confusion Matrix - Test Set';
-cm_test.FontSize = 14;
-cm_test.XLabel = 'Predicted Class';
-cm_test.YLabel = 'True Class';
+cm_test.FontSize = 14_
 
 
 
