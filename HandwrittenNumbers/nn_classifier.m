@@ -31,16 +31,16 @@ disp(error_rate);
 save nn_predictions nn_predictions
 
 function predictions = nn_classifier_func(train_data, test_data, train_labels, chunk_size)
-    num_test    = size(test_data, 1);                  % total number of test samples
+    num_test = size(test_data, 1);                  % total number of test samples
     num_classes = 10;                                  % MNIST has digits 0-9
     predictions = zeros(num_classes, num_test);        % onehot prediction matrix
-    num_chunks  = ceil(num_test / chunk_size);         % how many chunks we need
+    num_chunks = ceil(num_test / chunk_size);         % how many chunks we need
     
     % Loop through chunks
     for c = 1:num_chunks
         fprintf('Processing chunk %d of %d...\n', c, num_chunks);
-        idx_start     = (c-1) * chunk_size + 1;
-        idx_end       = min(c * chunk_size, num_test);
+        idx_start = (c-1) * chunk_size + 1;
+        idx_end = min(c * chunk_size, num_test);
         current_chunk = test_data(idx_start:idx_end, :);
 
         % Compute Euclidean distances between each test sample and all training samples
