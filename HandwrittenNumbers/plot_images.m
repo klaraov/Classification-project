@@ -10,7 +10,7 @@ load('nn_predictions.mat');
 
 % Random chosen pictures from correct and incorrect indices list for display
 sample_incorrect = [1040, 1466, 9983, 4824];
-sample_correct = [1235,    7, 9919, 9470];
+sample_correct = [1235, 7, 9919, 9470];
 
 image_matrix = zeros(28,28);
 
