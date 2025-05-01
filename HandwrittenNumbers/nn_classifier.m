@@ -8,7 +8,7 @@ tic
 % Call nearest neighbor classifier
 [nn_predictions] = nn_classifier_func(trainv, testv, trainlab, 1000);
 
-% Make one-hot known labels for the test set
+% Make one hot known labels for the test sett
 knowns = zeros(10, size(nn_predictions, 2));
 % For each test sample, index k, give its true digit
 for k = 1:size(nn_predictions, 2)
@@ -19,7 +19,7 @@ toc
 % Confusion matrix
 confusion_nn = knowns * nn_predictions';
 
-% Plot confusion matrix 
+% plot confusion matrix 
 figure(1)
 plot_confusion_matrix(confusion_nn, 0:9, 'NN Classifier');
 
